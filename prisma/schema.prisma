@@ -1,0 +1,56 @@
+// This is your prisma client
+generator client {
+  provider = "prisma-client-js"
+  seed = "tsx prisma/seed.ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  TOURIST
+  COMPANY_ADMIN
+  SUPER_ADMIN
+}
+
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  name String?
+  role Role @default (TOURIST)
+  createdAt DateTime @default(now())
+  bookings Booking[]
+}
+
+model Trip {
+  id String @id @default(cuid())
+  title String
+  description String
+  price Float  
+  location String
+  imageUrl String?
+  slots Int?
+  createdAt DateTime @default(now())
+  bookings Booking[]
+}
+
+model Booking {
+  id String @id @default(cuid())
+  userId String
+  tripId String
+  guests Int @default(1)
+  status String @default("pending")
+  bookedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  trip Trip @relation(fields: [tripId], references: [id])
+
+  @@index([userId,tripId]) // 1 user can't book same trip twice
+}
+
+
+
+
+  
+

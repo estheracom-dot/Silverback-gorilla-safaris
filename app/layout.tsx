@@ -7,7 +7,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <nav className="bg-white shadow-md sticky top-0 z-40">
           <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-green-700">Silverback Gorilla Safaris Lincoln Ltd</Link>
+            <Link href="/" className="text-2xl font-bold text-green-700">SafariGo</Link>
             <div className="flex gap-6">
               <Link href="/" className="hover:text-green-700">Home</Link>
               <Link href="/about" className="hover:text-green-700">About</Link>

@@ -1,44 +1,68 @@
-import Link from "next/link"
-import { trips } from "@/lib/data"
+"use client" // must be first line
+import { useState } from "react"
 
-export default function Home() {
-  return (
-    <main className="min-h-screen bg-gray-50">
-      {/* Hero */}
-      <section className="bg-green-900 text-white py-20 px-6 text-center">
-        <h1 className="text-5xl font-bold mb-4">Discover Your Next Safari</h1>
-        <p className="text-xl text-green-100">Wild adventures across Africa, curated for you</p>
-      </section>
+export default function HomePage() {
+  const [loading, setLoading] = useState(false)
 
-      {/* Safari Grid */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-        <h2 className="text-3xl font-bold mb-10 text-center">Popular Safaris</h2>
+  const handleTestPayment = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/payments/pesapal/pay', {
+        method: 'POST',
+        // ... your headers and body
+      });
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {trips.map((trip) => (
-            <Link
-              key={trip.id}
-              href={`/safari/${trip.id}`}
-              className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-shadow group"
-            >
-              <img
-                src={trip.image}
-                alt={trip.title}
-                className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2">{trip.title}</h3>
-                <p className="text-gray-600 text-sm mb-3">{trip.duration}</p>
-                <p className="text-gray-700 mb-4 line-clamp-2">{trip.description}</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-green-700">${trip.price}</span>
-                  <span className="text-green-700 font-semibold group-hover:underline">View Details →</span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-    </main>
-  )
+      // Check if the response is NOT OK (e.g., a 500 error)
+      if (!response.ok) {
+        // Read the text to see what the server actually sent back
+        const errorText = await response.text();
+        console.error('Server returned an error:', response.status, errorText);
+        throw new Error(`Payment failed with status: ${response.status}`);
+      }
+
+      // Only parse as JSON if the response was successful
+      const data = await response.json();
+      console.log("Payment successful!", data);
+
+    } catch (error) {
+      console.error("Error processing payment:", error);
+      // Handle the UI state here (e.g., show an error toast to the user)
+    }
+
+
+    const data = await res.json()
+    console.log("Pesapal response:", data)
+
+    if (data.redirectUrl) {
+      window.location.href = data.redirectUrl // BOOM -> goes to Pesapal
+    } else {
+      alert("Error: " + data.error)
+    }
+    fetch('/api/payments/pesapal/pay')
+      .then(data => {
+        console.log("payment successful!", data);
+      })
+      .catch(err => {
+        console.error(err)
+        alert("Failed to start payment")
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-24">
+        <h1 className="text-4xl font-bold mb-8">Safari App</h1>
+        <p className="mb-4">Test Pesapal Payment</p>
+
+        <button
+          onClick={handleTestPayment}
+          disabled={loading}
+          className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg text-lg font-semibold disabled:opacity-50"
+        >
+          {loading ? "Redirecting to Pesapal..." : "Pay UGX 1000 with Pesapal"}
+        </button>
+      </main>
+    )
+  }
 }

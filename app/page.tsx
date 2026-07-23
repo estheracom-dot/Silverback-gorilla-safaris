@@ -1,53 +1,50 @@
-"use client"
-import { useState } from "react"
+'use client'
+
+import { useState } from 'react'
 
 export default function HomePage() {
   const [loading, setLoading] = useState(false)
 
   const handleTestPayment = async () => {
     setLoading(true)
-
     try {
       const response = await fetch('/api/payments/pesapal/pay', {
         method: 'POST',
-        // ... your headers and body
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: 1000,
+          currency: 'UGX',
+          description: 'SafariGo Test Payment'
+        })
+      })
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server returned an error:', response.status, errorText);
-        throw new Error(`Payment failed with status: ${response.status}`);
-      }
+      const data = await response.json()
+      console.log("DATA FROM SERVER:", data)
 
-      const data = await response.json();
-      console.log("Pesapal response:", data);
-
-      if (data.redirectUrl) {
-        window.location.href = data.redirectUrl; // Redirects to Pesapal
+      if (data.redirect_url) {
+        window.location.href = data.redirect_url
       } else {
-        alert("Error: " + (data.error || "No redirect URL provided"));
+        alert("Server says: " + JSON.stringify(data))
       }
 
-    } catch (error) {
-      console.error("Error processing payment:", error);
-      alert("Failed to start payment");
+    } catch (error: any) {
+      alert("Error: " + error.message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
-  // The return statement MUST be outside the handleTestPayment function!
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold mb-8">Safari App</h1>
-      <p className="mb-4">Test Pesapal Payment</p>
+    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-white">
+      <h1 className="text-4xl font-bold mb-4 text-black">Safari App</h1>
+      <p className="text-lg mb-8 text-black">Test Pesapal Payment</p>
 
       <button
         onClick={handleTestPayment}
         disabled={loading}
-        className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg text-lg font-semibold disabled:opacity-50"
+        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-6 rounded-lg text-lg"
       >
-        {loading ? "Redirecting to Pesapal..." : "Pay UGX 1000 with Pesapal"}
+        {loading ? 'Processing...' : 'Pay UGX 1000 with Pesapal'}
       </button>
     </main>
   )

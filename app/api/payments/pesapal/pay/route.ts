@@ -1,47 +1,63 @@
 import { NextResponse } from "next/server"
-import axios from "axios"
 
-export async function POST(req: Request) {
-    try {
-        console.log("ENV KEY:", process.env.PESAPAL_CONSUMER_KEY ? "FOUND" : "MISSING")
+const PESAPAL_URL = process.env.NODE_ENV === 'production'
+    ? 'https://pay.pesapal.com/v3'
+    : 'https://cybqa.pesapal.com/pesapalv3' // sandbox
 
-        const body = await req.json()
-        console.log("BODY RECEIVED:", body)
-
-        // 1. Get Token
-        const tokenRes = await axios.post(`${process.env.PESAPAL_BASE_URL}/api/Auth/RequestToken`, {
+async function getToken() {
+    console.log("GETTING TOKEN...")
+    const res = await fetch(`${PESAPAL_URL}/api/Auth/RequestToken`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
             consumer_key: process.env.PESAPAL_CONSUMER_KEY,
             consumer_secret: process.env.PESAPAL_CONSUMER_SECRET
         })
-        console.log("TOKEN RESPONSE:", tokenRes.data)
-        const token = tokenRes.data.token
+    })
 
-        // 2. Submit Order
-        const orderRes = await axios.post(`${process.env.PESAPAL_BASE_URL}/api/Transactions/SubmitOrderRequest`, {
-            id: body.bookingId,
-            currency: "UGX",
+    const data = await res.json()
+    console.log("TOKEN RESPONSE:", data)
+    return data.token
+}
+
+export async function POST(req: Request) {
+    try {
+        const body = await req.json()
+
+        const token = await getToken()
+
+        const orderPayload = {
+            id: `SAFARI-${Date.now()}`,
+            currency: body.currency,
             amount: body.amount,
             description: body.description,
-            callback_url: process.env.PESAPAL_CALLBACK_URL,
-            notification_id: crypto.randomUUID(),
+            callback_url: "http://localhost:3000/api/payments/pesapal/callback",
             billing_address: {
-                email_address: body.email,
-                phone_number: body.phone,
-                first_name: body.firstName,
-                last_name: body.lastName
+                email_address: "test@safarigo.com",
+                phone_number: "256700000",
+                country_code: "UG",
+                first_name: "Test",
+                last_name: "User"
             }
-        }, {
+        }
+
+        console.log("SENDING ORDER:", orderPayload)
+        const orderRes = await fetch(`${PESAPAL_URL}/api/Transactions/SubmitOrderRequest`, {
+            method: 'POST',
             headers: {
-                "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json"
-            }
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(orderPayload)
         })
 
-        console.log("ORDER RESPONSE:", orderRes.data)
-        return NextResponse.json({ redirectUrl: orderRes.data.redirect_url })
+        const orderData = await orderRes.json()
+        console.log("ORDER RESPONSE:", orderData)
 
-    } catch (error: any) {
-        console.log("FULL PESAPAL ERROR:", error.response?.data || error.message)
-        return NextResponse.json({ error: error.response?.data || error.message }, { status: 500 })
+        return NextResponse.json({ redirect_url: orderData.redirect_url }) // <-- THIS CLOSES TRY
+
+    } catch (error: any) {  // <-- NOW CATCH WORKS
+        console.error("PESAPAL ERROR:", error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
